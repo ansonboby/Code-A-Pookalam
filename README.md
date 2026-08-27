@@ -8,7 +8,7 @@
 ## 👨‍💻 About Me
 
 - **Name:** Anson Boby
-- **Institution:** RIT Kottayam
+- **Institution:** college of engineering kallooppara
 - **GitHub:** [@ansonboby](https://github.com/ansonboby)
 - **Programming Language Used:** HTML5 Canvas + Vanilla JavaScript (zero dependencies)
 - **Lines of Code:** ~1120 (single file, pure code — no PNG/JPG tiles)
