@@ -884,12 +884,12 @@ function drawParticles(){
   }
 }
 
-// ── main loop — time-based for buttery smoothness ──
+// ── main loop — time-based for buttery smoothness + true pause ──
 function render(now){
-  const dt = Math.min((now - lastNow)/16.67, 2); // normalize to 60fps, cap for tab switch
+  const dt = Math.min((now - lastNow)/16.67, 2);
   lastNow = now;
-  frame += dt;
   if(!paused){
+    frame += dt;
     progress += 0.0032 * dt * speed;
     bloomPhase = Math.min(1, bloomPhase + 0.010 * dt * speed);
     if(progress>1.22) progress=1.22;
@@ -959,7 +959,7 @@ function render(now){
     }
   }
 
-  updateParticles();
+  if(!paused) updateParticles();
   drawParticles();
 
   // center highlight after complete - strong pulse + rotating rays
