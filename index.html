@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE-A-POOKALAM 2026 — TinkerHub RIT</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Manjari:wght@400&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#0a0404;
+    min-height:100vh;
+    min-width:100vw;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  /* vignette + texture */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.85) 100%),
+      radial-gradient(ellipse at 50% 18%, rgba(255,180,0,0.08), transparent 60%);
+    pointer-events:none;z-index:2;
+  }
+  #wrap{
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    /* size set via JS for precise DPR handling */
+  }
+  canvas{display:block;filter:drop-shadow(0 20px 60px rgba(0,0,0,0.9)); flex-shrink:0;}
+  /* header */
+  #header{
+    position:fixed;top:22px;left:50%;transform:translateX(-50%);
+    text-align:center;z-index:10;pointer-events:none;
+  }
+  #header h1{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:600;letter-spacing:0.38em;
+    font-size:13px;color:rgba(255,215,110,0.95);
+    text-transform:uppercase;
+    text-shadow:0 0 18px rgba(255,180,0,0.45);
+  }
+  #header h1 span{color:rgba(255,255,255,0.92);font-weight:400}
+  #header p{
+    font-size:9.5px;letter-spacing:0.28em;
+    color:rgba(255,215,110,0.42);margin-top:5px;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  #header .ml{
+    font-family:'Manjari',sans-serif;
+    font-size:11px;letter-spacing:0.18em;
+    color:rgba(255,215,110,0.28);margin-top:2px;
+  }
+  /* controls - glass */
+  #controls{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    display:flex;gap:7px;z-index:10;
+    background:rgba(20,10,5,0.55);
+    border:1px solid rgba(255,215,110,0.14);
+    padding:7px 10px;border-radius:999px;
+    backdrop-filter:blur(14px) saturate(1.4);
+    box-shadow:0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .btn{
+    appearance:none;
+    background:rgba(255,215,110,0.08);
+    border:1px solid rgba(255,215,110,0.18);
+    color:rgba(255,240,180,0.88);
+    padding:6px 13px;border-radius:999px;
+    font-size:10.5px;letter-spacing:0.12em;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;text-transform:uppercase;
+    cursor:pointer;transition:all .22s;
+  }
+  .btn:hover{background:rgba(255,215,110,0.16);border-color:rgba(255,215,110,0.35);color:#FFD86B;transform:translateY(-1px)}
+  .btn:active{transform:none}
+  .btn.primary{background:rgba(255,180,0,0.92);color:#1a0e00;border-color:rgba(255,180,0,1);box-shadow:0 0 14px rgba(255,180,0,0.45)}
+  .btn.primary:hover{background:#FFC533}
+  #hint{
+    position:fixed;bottom:18px;right:18px;z-index:10;
+    font-size:9px;letter-spacing:0.14em;
+    color:rgba(255,215,110,0.28);
+    text-align:right;line-height:1.6;
+    pointer-events:none;
+  }
+  #hint b{color:rgba(255,215,110,0.55);font-weight:600}
+  /* theme label */
+  #themeLabel{
+    position:fixed;top:22px;right:22px;z-index:10;
+    font-size:9px;letter-spacing:0.22em;
+    color:rgba(255,215,110,0.32);
+    border:1px solid rgba(255,215,110,0.12);
+    padding:5px 9px;border-radius:999px;
+    background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>CODE-A-POOKALAM <span>· 2026</span></h1>
+  <p>TINKERHUB RIT KOTTAYAM — ONAM</p>
+  <div class="ml">ഓണം ആശംസകൾ</div>
+</div>
+<div id="themeLabel">TRADITIONAL · ONAM</div>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="controls">
+  <button class="btn primary" onclick="toggleBloom()" id="bloomBtn">Bloom</button>
+  <button class="btn" onclick="togglePause()" id="pauseBtn">Pause</button>
+  <button class="btn" onclick="cycleTheme()">Theme</button>
+  <button class="btn" onclick="savePNG()">Save PNG</button>
+</div>
+<div id="hint"><b>CLICK</b> TO RIPPLE &nbsp;·&nbsp; <b>HOVER</b> TO GLOW<br><b>T</b> THEME &nbsp;·&nbsp; <b>SPACE</b> PAUSE &nbsp;·&nbsp; <b>S</b> SAVE</div>
+
+<script>
+/* ─────────────────────────────────────────
+   CODE-A-POOKALAM 2026  ·  Winner Edition
+   Single-file, zero-deps, pure canvas math
+   12 rings · bezier petals · pulli-kolam · paisley
+   ───────────────────────────────────────── */
+const C = document.getElementById('c');
+const X = C.getContext('2d');
+let DPR = Math.min(devicePixelRatio||1, 2);
+
+let W=600, CX=300, CY=300, R=260;
+// responsive sizing - square, high-DPI (window-based, foolproof)
+function resize(){
+  DPR = Math.min(devicePixelRatio||1, 2);
+  // 86vmin ensures full pookalam visible even with header/controls
+  const s = Math.floor(Math.min(innerWidth, innerHeight) * 0.86);
+  W = s; CX = s/2; CY = s/2; R = s*0.445;
+  C.width = s * DPR; C.height = s * DPR;
+  C.style.width = s+'px'; C.style.height = s+'px';
+  X.setTransform(DPR,0,0,DPR,0,0);
+  // re-seed falling petals to new bounds (only after init)
+  if(typeof falling !== 'undefined' && Array.isArray(falling) && falling.length && typeof initFalling === 'function'){
+    try{ if(falling.length) initFalling(); }catch(e){}
+  }
+}
+
+// ── Palettes (carefully tuned Onam colors) ──
+const PALETTES = {
+  traditional: {
+    name:'TRADITIONAL · ONAM',
+    bg:['#140800','#2a0e02','#0a0200'],
+    c:'#FFD54F', // gold stroke
+    rings:[
+      {f:'#8B0000', s:'#FFD54F'}, // center
+      {f:'#C41E3A', s:'#FFD54F'}, // 12 petals crimson
+      {f:'#E65100', s:'#FFE0B2'}, // 16 petals orange
+      {f:'#FFB300', s:'#5D4037'}, // yantra gold
+      {f:'#FFFFFF', s:'#C41E3A'}, // diamond white/crimson
+      {f:'#2E7D32', s:'#A5D6A7'}, // green lotus
+      {f:'#FFF8E1', s:'#8D6E63'}, // pulli kolam cream
+      {f:'#BF360C', s:'#FFCC80'}, // paisley terracotta
+      {f:'#1A1A1A', s:'#FFD54F'}, // text ring
+      {f:'#8B0000', s:'#FFD54F'}, // scallop maroon
+      {f:'#FFB300', s:'#FFFFFF'}, // dots gold
+      {f:'#FFD54F', s:'#8B0000'}, // outer
+    ]
+  },
+  royal: {
+    name:'ROYAL · KERALA',
+    bg:['#0d0a14','#1a1030','#0a0614'],
+    c:'#D4AF37',
+    rings:[
+      {f:'#4A148C', s:'#D4AF37'},
+      {f:'#6A1B9A', s:'#FFD54F'},
+      {f:'#8E24AA', s:'#F8BBD0'},
+      {f:'#FFB300', s:'#4A148C'},
+      {f:'#F3E5F5', s:'#6A1B9A'},
+      {f:'#00695C', s:'#80CBC4'},
+      {f:'#FFF3E0', s:'#6A1B9A'},
+      {f:'#4A148C', s:'#FFB300'},
+      {f:'#0a0a0a', s:'#D4AF37'},
+      {f:'#4A148C', s:'#D4AF37'},
+      {f:'#D4AF37', s:'#FFFFFF'},
+      {f:'#D4AF37', s:'#4A148C'},
+    ]
+  },
+  sunset: {
+    name:'SUNSET · VIBRANT',
+    bg:['#1a0800','#3a1200','#0f0400'],
+    c:'#FF8A65',
+    rings:[
+      {f:'#BF360C', s:'#FFCC80'},
+      {f:'#E64A19', s:'#FFCC80'},
+      {f:'#FF5722', s:'#FFE0B2'},
+      {f:'#FFB300', s:'#BF360C'},
+      {f:'#FFFFFF', s:'#FF5722'},
+      {f:'#F4511E', s:'#FFAB91'},
+      {f:'#FFF3E0', s:'#BF360C'},
+      {f:'#D84315', s:'#FFCC80'},
+      {f:'#1a0a00', s:'#FFB300'},
+      {f:'#BF360C', s:'#FFB300'},
+      {f:'#FF6F00', s:'#FFFFFF'},
+      {f:'#FFB300', s:'#BF360C'},
+    ]
+  },
+  forest: {
+    name:'FOREST · BLOOM',
+    bg:['#021208','#0a2a12','#020a06'],
+    c:'#A5D6A7',
+    rings:[
+      {f:'#1B5E20', s:'#FFD54F'},
+      {f:'#2E7D32', s:'#A5D6A7'},
+      {f:'#388E3C', s:'#C8E6C9'},
+      {f:'#FFB300', s:'#1B5E20'},
+      {f:'#E8F5E9', s:'#2E7D32'},
+      {f:'#004D40', s:'#80CBC4'},
+      {f:'#FFF8E1', s:'#4E342E'},
+      {f:'#33691E', s:'#AED581'},
+      {f:'#0a140a', s:'#FFD54F'},
+      {f:'#1B5E20', s:'#A5D6A7'},
+      {f:'#66BB6A', s:'#FFFFFF'},
+      {f:'#A5D6A7', s:'#1B5E20'},
+    ]
+  }
+};
+
+let palKeys = Object.keys(PALETTES), palIdx=0, palName='traditional';
+let palette = PALETTES[palName];
+let paused=false, progress=0, frame=0, speed=1;
+let particles=[], ripples=[], falling=[];
+let mouse={x:-9999,y:-9999, active:false};
+let bloomPhase=0; // 0..1 for initial bloom
+resize();
+addEventListener('resize', ()=>{ resize(); });
+
+// track mouse for hover glow
+C.addEventListener('mousemove', e=>{
+  const rect=C.getBoundingClientRect();
+  const s = W / rect.width;
+  mouse.x = (e.clientX - rect.left)*s;
+  mouse.y = (e.clientY - rect.top)*s;
+  mouse.active=true;
+});
+C.addEventListener('mouseleave', ()=>mouse.active=false);
+C.addEventListener('click', e=>{
+  const rect=C.getBoundingClientRect();
+  const s = W/rect.width;
+  const x=(e.clientX-rect.left)*s, y=(e.clientY-rect.top)*s;
+  ripples.push({x,y,r:0,max: R*0.9, life:1});
+  for(let i=0;i<18;i++){
+    const a=Math.random()*Math.PI*2, sp=1+Math.random()*3;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:0.018+Math.random()*0.012,col:palette.c,size:2+Math.random()*2.5,glow:true});
+  }
+});
+
+// easing
+const easeOutBack = t=>{ const c1=1.70158,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); };
+const easeOut = t=>1-Math.pow(1-t,3);
+const easeInOut = t=> t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+
+// ── primitives ──
+function petalPath(len, wid, t){
+  // draw at origin pointing up (negative y), caller translates/rotates
+  X.beginPath();
+  X.moveTo(0,0);
+  X.bezierCurveTo(wid*t, -len*0.32*t, wid*t, -len*0.68*t, 0, -len*t);
+  X.bezierCurveTo(-wid*t, -len*0.68*t, -wid*t, -len*0.32*t, 0,0);
+  X.closePath();
+}
+function dot(x,y,r){ X.beginPath(); X.arc(x,y,r,0,Math.PI*2); X.fill(); }
+
+function radialGrad(cx,cy,r0,r1, stops){
+  const g=X.createRadialGradient(cx,cy,r0,cx,cy,r1);
+  stops.forEach(([o,c])=>g.addColorStop(o,c));
+  return g;
+}
+function linearGrad(x0,y0,x1,y1,stops){
+  const g=X.createLinearGradient(x0,y0,x1,y1);
+  stops.forEach(([o,c])=>g.addColorStop(o,c));
+  return g;
+}
+
+// ── RING DRAWERS (12) ── HYBRID WINNER: lamp + gear
+function drawCenter(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // brass lamp glow — pulsating
+  const pulse = 1 + Math.sin(frame*0.045)*0.12;
+  const glow = radialGrad(cx,cy,0,r*2.2*pulse,[[0,'rgba(255,215,80,0.65)'],[0.25,'rgba(255,180,0,0.28)'],[0.55,'rgba(255,120,0,0.10)'],[1,'rgba(0,0,0,0)']]);
+  X.fillStyle=glow; X.beginPath(); X.arc(cx,cy,r*2.2*pulse,0,Math.PI*2); X.fill();
+  // outer disc shadow
+  X.shadowColor='rgba(0,0,0,0.6)'; X.shadowBlur=r*0.35; X.shadowOffsetY=r*0.08;
+  X.fillStyle = radialGrad(cx,cy, r*0.2, r, [[0,'#a80000'],[0.6,c.f],[1,'#5a0000']]);
+  X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.fill();
+  X.shadowColor='transparent';
+  // TinkerHub gear ring — 16 teeth rotating around center (maker identity, subtle)
+  X.save(); X.translate(cx,cy); X.rotate(frame*0.008);
+  X.strokeStyle='rgba(255,213,79,0.85)'; X.lineWidth=r*0.045; X.fillStyle='rgba(255,213,79,0.12)';
+  X.beginPath(); X.arc(0,0,r*0.82,0,Math.PI*2); X.fill(); X.stroke();
+  // gear teeth
+  X.fillStyle='rgba(255,213,79,0.95)';
+  for(let i=0;i<16;i++){
+    const a=(i/16)*Math.PI*2;
+    X.save(); X.rotate(a); X.translate(0, -r*0.82);
+    X.fillRect(-r*0.035, -r*0.055, r*0.07, r*0.09);
+    // tooth tip dot
+    X.fillStyle='#FFD54F'; X.beginPath(); X.arc(0,-r*0.06,r*0.018,0,Math.PI*2); X.fill(); X.fillStyle='rgba(255,213,79,0.95)';
+    X.restore();
+  }
+  // inner gear hub dots
+  X.fillStyle='rgba(255,213,79,0.55)';
+  for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2; X.beginPath(); X.arc(Math.cos(a)*r*0.62, Math.sin(a)*r*0.62, r*0.018,0,Math.PI*2); X.fill(); }
+  X.restore();
+  // inner gold rim
+  X.strokeStyle='rgba(255,213,79,0.95)'; X.lineWidth=r*0.09; X.beginPath(); X.arc(cx,cy,r*0.72,0,Math.PI*2); X.stroke();
+  // inner cream disc
+  X.fillStyle = radialGrad(cx,cy,0,r*0.62, [[0,'#FFFDE7'],[0.5,'#FFECB3'],[1,'#FFD54F']]);
+  X.beginPath(); X.arc(cx,cy,r*0.62,0,Math.PI*2); X.fill();
+  // 3-layer lotus — outer 12, mid 8, inner 6 (dense, not boring)
+  const layers = [
+    {n:12, len:0.55, wid:0.13, col:'#C41E3A', rot: frame*0.006},
+    {n:8,  len:0.42, wid:0.11, col:'#E65100', rot: -frame*0.005},
+    {n:6,  len:0.32, wid:0.09, col:'#8B0000', rot: frame*0.004},
+  ];
+  layers.forEach(L=>{
+    for(let i=0;i<L.n;i++){
+      const a=(i/L.n)*Math.PI*2 + L.rot;
+      X.save(); X.translate(cx,cy); X.rotate(a);
+      X.fillStyle=L.col;
+      // subtle shadow for depth
+      X.shadowColor='rgba(0,0,0,0.18)'; X.shadowBlur=3;
+      petalPath(r*L.len, r*L.wid, t); X.fill();
+      X.shadowColor='transparent';
+      X.strokeStyle='rgba(255,213,79,0.85)'; X.lineWidth=0.6; petalPath(r*L.len, r*L.wid, t); X.stroke();
+      X.restore();
+    }
+  });
+  // center flickering flame — Nilavilakku diya
+  const flicker = 1 + Math.sin(frame*0.22)*0.08 + Math.cos(frame*0.17)*0.05;
+  X.save(); X.translate(cx,cy);
+  // flame glow
+  const fg = radialGrad(0,0,0,r*0.28*flicker, [[0,'rgba(255,255,255,0.95)'],[0.25,'rgba(255,240,100,0.85)'],[0.55,'rgba(255,180,0,0.55)'],[1,'rgba(255,100,0,0)']]);
+  X.fillStyle=fg; X.beginPath(); X.arc(0,0,r*0.28*flicker,0,Math.PI*2); X.fill();
+  X.fillStyle='#8B0000'; dot(0,0,r*0.18);
+  X.fillStyle='#FFD54F'; dot(0,0,r*0.11 * flicker);
+  X.fillStyle='rgba(255,255,255,0.9)'; dot(-r*0.025, -r*0.03, r*0.028);
+  // tiny sparkle
+  if(frame%12===0){ X.fillStyle='rgba(255,255,255,0.95)'; dot((Math.random()-0.5)*r*0.18,(Math.random()-0.5)*r*0.18, r*0.015); }
+  X.restore();
+  X.restore();
+}
+
+function drawPetals12(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  const n=12, rot = frame*0.0045;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + rot;
+    const dist = Math.hypot(mouse.x-cx, mouse.y-cy);
+    const angToMouse = Math.atan2(mouse.y-cy, mouse.x-cx);
+    let hoverBoost = 0;
+    if(mouse.active){
+      const da = Math.abs(((a - angToMouse + Math.PI*3)%(Math.PI*2))-Math.PI);
+      if(dist < r*1.15 && da < 0.38) hoverBoost = (1-da/0.38)*0.18;
+    }
+    X.save(); X.translate(cx,cy); X.rotate(a);
+    const len=r*0.78 + hoverBoost*r, wid=r*0.19 + hoverBoost*r*0.3;
+    // shadow
+    X.shadowColor='rgba(0,0,0,0.28)'; X.shadowBlur=6; X.shadowOffsetY=3;
+    const g = radialGrad(0,-r*0.38,0,r*0.5, [[0,'#FFE0B2'],[0.45,c.f],[1,'#5a0000']]);
+    X.fillStyle=g; petalPath(len,wid,t); X.fill();
+    X.shadowColor='transparent';
+    X.strokeStyle=c.s; X.lineWidth=1; petalPath(len,wid,t); X.stroke();
+    // vein
+    X.strokeStyle='rgba(255,255,255,0.42)'; X.lineWidth=0.7;
+    X.beginPath(); X.moveTo(0,0); X.lineTo(0,-len*t*0.92); X.stroke();
+    // inner highlight
+    X.fillStyle='rgba(255,255,255,0.16)';
+    X.beginPath();
+    X.moveTo(0,0);
+    X.bezierCurveTo(wid*0.35*t, -len*0.3*t, wid*0.35*t, -len*0.6*t, 0, -len*0.88*t);
+    X.bezierCurveTo(-wid*0.15*t, -len*0.55*t, -wid*0.15*t, -len*0.28*t, 0,0);
+    X.closePath(); X.fill();
+    X.restore();
+  }
+  X.restore();
+}
+
+function drawPetals16(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  const n=16, rot = -frame*0.0038;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + Math.PI/n + rot;
+    X.save(); X.translate(cx,cy); X.rotate(a);
+    const len=r*0.62, wid=r*0.13;
+    X.shadowColor='rgba(0,0,0,0.22)'; X.shadowBlur=5;
+    const g = radialGrad(0,-r*0.32,0,r*0.42, [[0,'#FFE0B2'],[0.5,c.f],[1,'#7a1a00']]);
+    X.fillStyle=g; petalPath(len,wid,t); X.fill();
+    X.shadowColor='transparent';
+    X.strokeStyle=c.s; X.lineWidth=0.85; petalPath(len,wid,t); X.stroke();
+    X.strokeStyle='rgba(255,255,255,0.32)'; X.lineWidth=0.6;
+    X.beginPath(); X.moveTo(0,0); X.lineTo(0,-len*t*0.88); X.stroke();
+    X.restore();
+  }
+  X.restore();
+}
+
+function drawYantra(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // gold band background — richer gradient
+  X.fillStyle = radialGrad(cx,cy,r*0.52,r*0.99, [[0,'#FFF8E1'],[0.45,c.f],[0.72,'#FFB300'],[1,'#8D6E00']]);
+  X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.fill();
+  X.strokeStyle=c.s; X.lineWidth=1.6; X.stroke();
+  X.beginPath(); X.arc(cx,cy,r*0.60,0,Math.PI*2); X.stroke();
+  // Sri-Yantra approximation — 9 interlocked triangles (4 up, 5 down)
+  // This is the dense sacred geometry that screams "code complexity"
+  X.save(); X.translate(cx,cy); X.rotate(frame*0.0018);
+  const tri = (size, up, alpha, lw)=>{
+    X.save();
+    if(!up) X.rotate(Math.PI);
+    X.globalAlpha = alpha;
+    X.strokeStyle = up ? 'rgba(90,0,0,0.92)' : 'rgba(90,0,0,0.65)';
+    X.fillStyle = up ? 'rgba(255,248,225,0.18)' : 'rgba(139,0,0,0.08)';
+    X.lineWidth = lw;
+    X.lineJoin='round';
+    X.beginPath();
+    // equilateral triangle centered
+    for(let k=0;k<3;k++){
+      const a = -Math.PI/2 + k*Math.PI*2/3;
+      const x=Math.cos(a)*size, y=Math.sin(a)*size;
+      if(k===0) X.moveTo(x,y); else X.lineTo(x,y);
+    }
+    X.closePath(); X.fill(); X.stroke();
+    X.restore();
+  };
+  // outer to inner — alternating
+  const sizes = [0.48,0.42,0.38,0.33,0.29,0.24,0.20,0.16,0.12];
+  sizes.forEach((s,i)=>{
+    const up = i%2===0;
+    const alpha = 0.95 - i*0.07;
+    tri(r*s, up, alpha, r*0.018 - i*0.001);
+  });
+  // counter-rotating inner layer
+  X.save(); X.rotate(-frame*0.0032);
+  sizes.slice(0,5).forEach((s,i)=>{
+    const up = i%2!==0;
+    tri(r*s*0.92, up, 0.45, r*0.012);
+  });
+  X.restore();
+  X.restore();
+  // binding dots — where triangles intersect (8 outer + 4 inner)
+  X.fillStyle=c.s;
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2 + frame*0.0025;
+    const rad = r*(0.60 + Math.sin(frame*0.008+i)*0.015);
+    X.beginPath(); X.arc(cx+Math.cos(a)*rad, cy+Math.sin(a)*rad, r*0.029,0,Math.PI*2); X.fill();
+    // highlight
+    X.fillStyle='rgba(255,255,255,0.85)'; X.beginPath(); X.arc(cx+Math.cos(a)*rad - r*0.008, cy+Math.sin(a)*rad - r*0.008, r*0.009,0,Math.PI*2); X.fill(); X.fillStyle=c.s;
+  }
+  // central bindu — pulsating
+  const binduPulse = 1 + Math.sin(frame*0.045)*0.12;
+  X.fillStyle='#5a0000'; X.beginPath(); X.arc(cx,cy,r*0.065*binduPulse,0,Math.PI*2); X.fill();
+  X.fillStyle='#FFD54F'; X.beginPath(); X.arc(cx,cy,r*0.038*binduPulse,0,Math.PI*2); X.fill();
+  X.fillStyle='rgba(255,255,255,0.9)'; X.beginPath(); X.arc(cx- r*0.012, cy- r*0.012, r*0.015,0,Math.PI*2); X.fill();
+  X.restore();
+}
+
+function drawDiamondBand(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // cream base
+  X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.fill();
+  X.fillStyle='rgba(0,0,0,0.04)'; X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.fill();
+  const n=24;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2, na=((i+0.5)/n)*Math.PI*2;
+    const inner=r*0.71, outer=r*0.95, midR=r*0.83;
+    // diamond
+    X.beginPath();
+    X.moveTo(cx+Math.cos(a)*outer, cy+Math.sin(a)*outer);
+    X.lineTo(cx+Math.cos(na)*midR*1.06, cy+Math.sin(na)*midR*1.06);
+    X.lineTo(cx+Math.cos(((i+1)/n)*Math.PI*2)*outer, cy+Math.sin(((i+1)/n)*Math.PI*2)*outer);
+    X.lineTo(cx+Math.cos(na)*midR*0.88, cy+Math.sin(na)*midR*0.88);
+    X.closePath();
+    const isAlt=i%2===0;
+    X.fillStyle=isAlt? '#C41E3A' : '#FFB300';
+    X.fill();
+    X.strokeStyle='rgba(255,255,255,0.55)'; X.lineWidth=0.6; X.stroke();
+    // tiny dot at tip
+    if(isAlt){
+      X.fillStyle='#FFD54F';
+      dot(cx+Math.cos(a)*outer*0.985, cy+Math.sin(a)*outer*0.985, r*0.018);
+    }
+  }
+  X.strokeStyle='rgba(139,0,0,0.85)'; X.lineWidth=1.2;
+  X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.stroke();
+  X.beginPath(); X.arc(cx,cy,r*0.69,0,Math.PI*2); X.stroke();
+  X.restore();
+}
+
+function drawLargeLotus(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  const n=24, rot=frame*0.0022;
+  // subtle radial backdrop
+  const bg = radialGrad(cx,cy,r*0.3,r, [[0,'rgba(255,255,255,0)'],[0.7,'rgba(46,125,50,0.06)'],[1,'rgba(46,125,50,0.14)']]);
+  X.fillStyle=bg; X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.fill();
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + rot;
+    X.save(); X.translate(cx,cy); X.rotate(a);
+    const len=r*0.68, wid=r*0.12;
+    X.shadowColor='rgba(0,0,0,0.22)'; X.shadowBlur=7; X.shadowOffsetY=3;
+    const g = radialGrad(0,-r*0.32,0,r*0.55, [[0,'#E8F5E9'],[0.35,c.f],[1,'#1B5E20']]);
+    X.fillStyle=g; petalPath(len,wid,t); X.fill();
+    X.shadowColor='transparent';
+    X.strokeStyle=c.s; X.lineWidth=1; petalPath(len,wid,t); X.stroke();
+    // triple vein
+    X.strokeStyle='rgba(255,255,255,0.5)'; X.lineWidth=0.9;
+    X.beginPath(); X.moveTo(0,0); X.lineTo(0,-len*t*0.9); X.stroke();
+    X.strokeStyle='rgba(255,255,255,0.22)'; X.lineWidth=0.5;
+    X.beginPath(); X.moveTo(0,-len*t*0.28); X.lineTo(wid*0.55,-len*t*0.52); X.stroke();
+    X.beginPath(); X.moveTo(0,-len*t*0.28); X.lineTo(-wid*0.55,-len*t*0.52); X.stroke();
+    X.restore();
+  }
+  // dots between petals
+  X.fillStyle='#FFD54F';
+  for(let i=0;i<n;i++){
+    const a=((i+0.5)/n)*Math.PI*2 + rot;
+    dot(cx+Math.cos(a)*r*0.52, cy+Math.sin(a)*r*0.52, r*0.022);
+  }
+  X.fillStyle='rgba(255,255,255,0.9)';
+  for(let i=0;i<n;i++){
+    const a=((i+0.5)/n)*Math.PI*2 + rot;
+    dot(cx+Math.cos(a)*r*0.52, cy+Math.sin(a)*r*0.52, r*0.009);
+  }
+  X.restore();
+}
+
+function drawPulliKolam(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // base cream
+  X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.97,0,Math.PI*2); X.fill();
+  // subtle texture
+  X.strokeStyle='rgba(141,110,99,0.08)'; X.lineWidth=0.5;
+  for(let i=0;i<3;i++){
+    X.beginPath(); X.arc(cx,cy,r*(0.82+i*0.05),0,Math.PI*2); X.stroke();
+  }
+  const n=20, dotR=r*0.031, orbitR=r*0.83;
+  // dots
+  X.fillStyle='#4E342E';
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2;
+    const x=cx+Math.cos(a)*orbitR, y=cy+Math.sin(a)*orbitR;
+    pts.push({x,y,a});
+    X.beginPath(); X.arc(x,y,dotR,0,Math.PI*2); X.fill();
+    X.fillStyle='rgba(255,255,255,0.95)'; X.beginPath(); X.arc(x- dotR*0.28, y- dotR*0.28, dotR*0.28,0,Math.PI*2); X.fill();
+    X.fillStyle='#4E342E';
+  }
+  // connecting kolam curves (alternating arcs between dots)
+  X.strokeStyle='rgba(191,54,12,0.78)'; X.lineWidth=r*0.016; X.lineCap='round'; X.lineJoin='round';
+  for(let i=0;i<n;i++){
+    const p0=pts[i], p1=pts[(i+1)%n];
+    const midA=(p0.a + p1.a)/2;
+    // handle wrap
+    let midAng = (p0.a + 0.5*( (p1.a - p0.a + Math.PI*2)%(Math.PI*2) ) ) % (Math.PI*2);
+    // two curves forming a loop: one inward, one outward alternating
+    const inward = i%2===0;
+    const ctrlR = inward ? orbitR*0.88 : orbitR*1.04;
+    const cx1=cx+Math.cos(midAng)*ctrlR, cy1=cy+Math.sin(midAng)*ctrlR;
+    X.beginPath();
+    X.moveTo(p0.x,p0.y);
+    X.quadraticCurveTo(cx1,cy1,p1.x,p1.y);
+    X.stroke();
+  }
+  // inner thin circles
+  X.strokeStyle='rgba(78,52,46,0.18)'; X.lineWidth=1;
+  X.beginPath(); X.arc(cx,cy,r*0.71,0,Math.PI*2); X.stroke();
+  X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.stroke();
+  // tiny marigold dots on kolam path
+  X.fillStyle='#FFB300';
+  for(let i=0;i<n;i++){
+    const a=((i+0.5)/n)*Math.PI*2;
+    dot(cx+Math.cos(a)*r*0.76, cy+Math.sin(a)*r*0.76, r*0.016);
+  }
+  X.restore();
+}
+
+function drawPaisley(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  const n=16, rot=-frame*0.0028;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + rot;
+    X.save(); X.translate(cx,cy); X.rotate(a);
+    // mango leaf / paisley shape using bezier
+    const len=r*0.58, wid=r*0.16;
+    X.shadowColor='rgba(0,0,0,0.18)'; X.shadowBlur=6;
+    // gradient terracotta -> gold
+    const g = linearGrad(0,0, 0,-len, [[0,'#3E2723'],[0.3,c.f],[0.7,'#E65100'],[1,'#FFB300']]);
+    X.fillStyle=g;
+    X.beginPath();
+    // paisley: teardrop with curly tail
+    X.moveTo(0, -r*0.12);
+    X.bezierCurveTo(wid*1.1, -r*0.18, wid*0.9, -len*0.55, 0, -len);
+    X.bezierCurveTo(-wid*0.7, -len*0.55, -wid*0.5, -r*0.28, 0, -r*0.12);
+    X.closePath();
+    // scale by t
+    // we already approximate; apply transform scaling for bloom
+    X.save(); X.scale(t,t); // bloom from center
+    // need to reset path? instead we re-draw scaled – simpler: use scale before path. quick hack: clear and redraw scaled
+    X.restore();
+    // workaround: just fill as is but clip with t via global logic - actual bloom handled by alpha + small scale via ctx scale above.
+    // For simplicity, draw with t scaling via manual
+    X.fill();
+    X.shadowColor='transparent';
+    X.strokeStyle='rgba(255,213,79,0.55)'; X.lineWidth=0.9; X.stroke();
+    // inner swirl
+    X.strokeStyle='rgba(255,255,255,0.38)'; X.lineWidth=0.7;
+    X.beginPath();
+    X.moveTo(0, -r*0.22);
+    X.bezierCurveTo(wid*0.32, -r*0.34, wid*0.22, -len*0.62, 0, -len*0.82);
+    X.stroke();
+    // dot at paisley head
+    X.fillStyle='#FFD54F';
+    X.beginPath(); X.arc(0,-len*0.88, r*0.028,0,Math.PI*2); X.fill();
+    X.restore();
+  }
+  // center ring line
+  X.strokeStyle='rgba(191,54,12,0.22)'; X.lineWidth=1;
+  X.beginPath(); X.arc(cx,cy,r*0.92,0,Math.PI*2); X.stroke();
+  X.restore();
+}
+
+function drawTextRing(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // dark band
+  X.fillStyle='#0f0a08';
+  X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.fill();
+  X.fillStyle='rgba(255,213,79,0.06)'; X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.fill();
+  X.strokeStyle='rgba(255,213,79,0.45)'; X.lineWidth=1.2;
+  X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.stroke();
+  X.beginPath(); X.arc(cx,cy,r*0.76,0,Math.PI*2); X.stroke();
+  // circular text - top and bottom
+  const textTop = "  ✦  TINKERHUB  ✦  RIT KOTTAYAM  ✦  CODE-A-POOKALAM 2026  ✦  ";
+  const textBot = "  🌸  ONAM 2026  🌸  CREATED WITH CODE & TRADITION  🌸  ";
+  function drawCircularText(str, radius, fontSize, color, rotOffset){
+    X.save();
+    X.translate(cx,cy);
+    X.rotate(rotOffset);
+    X.font=`600 ${fontSize}px 'Space Grotesk', sans-serif`;
+    X.fillStyle=color;
+    X.textAlign='center'; X.textBaseline='middle';
+    const totalAngle = str.length * 0.032; // approximate
+    let angle = -totalAngle/2;
+    for(let ch of str){
+      X.save();
+      X.rotate(angle);
+      X.translate(0, -radius);
+      // keep upright for bottom half
+      // if angle > PI/2 etc, flip
+      X.fillText(ch, 0, 0);
+      X.restore();
+      // advance by measured width
+      const w = X.measureText(ch).width;
+      angle += (w / radius) * 1.02;
+    }
+    X.restore();
+  }
+  // Simpler: use strokeText path by rotating each char
+  // Use precise placement
+  function circularArcText(str, radius, startAngle, endAngle, flipBottom){
+    const chars = Array.from(str);
+    const range = endAngle - startAngle;
+    const step = range / chars.length;
+    X.font=`600 ${r*0.045}px 'Space Grotesk', sans-serif`;
+    X.textAlign='center'; X.textBaseline='middle';
+    for(let i=0;i<chars.length;i++){
+      const ch = chars[i];
+      if(ch===' ') continue;
+      const a = startAngle + i*step + step/2;
+      X.save();
+      X.translate(cx + Math.cos(a - Math.PI/2)*radius, cy + Math.sin(a - Math.PI/2)*radius);
+      X.rotate(a);
+      if(flipBottom && a > Math.PI*0.5 && a < Math.PI*1.5) X.rotate(Math.PI);
+      X.fillStyle = ch==='✦' || ch==='🌸' ? '#FFD54F' : 'rgba(255,240,190,0.92)';
+      X.fillText(ch, 0, 0);
+      X.restore();
+    }
+  }
+  function circularArcTextBottom(str, radius, startAngle, endAngle){
+    const chars = Array.from(str);
+    const range = endAngle - startAngle;
+    const step = range / chars.length;
+    X.font=`600 ${r*0.045}px 'Space Grotesk', sans-serif`;
+    X.textAlign='center'; X.textBaseline='middle';
+    // draw bottom reversed so it reads left-to-right at bottom upright
+    for(let i=chars.length-1;i>=0;i--){
+      const ch = chars[i];
+      if(ch===' ') continue;
+      const idx = chars.length-1 - i;
+      const a = startAngle + idx*step + step/2;
+      X.save();
+      X.translate(cx + Math.cos(a - Math.PI/2)*radius, cy + Math.sin(a - Math.PI/2)*radius);
+      X.rotate(a);
+      // for bottom we want upright, so flip
+      if(a > Math.PI*0.5 && a < Math.PI*1.5) X.rotate(Math.PI);
+      // actually bottom needs no flip if we reversed, so flip opposite?
+      // after reverse, we still need upright, so keep flip but now it will be correct
+      X.fillStyle = ch==='✦' || ch==='🌸' ? '#FFD54F' : 'rgba(255,240,190,0.92)';
+      X.fillText(ch, 0, 0);
+      X.restore();
+    }
+  }
+  // top arc: -122° to +122°
+  circularArcText(textTop, r*0.875, -Math.PI*0.68, Math.PI*0.68, true);
+  // bottom arc: 122° to 238° via bottom (0.68π to 1.32π is narrow, use 0.32π to 1.68π)
+  circularArcTextBottom(textBot, r*0.875, Math.PI*0.32, Math.PI*1.68);
+
+  // decorative small dots between text
+  X.fillStyle='rgba(255,213,79,0.45)';
+  for(let i=0;i<12;i++){
+    const a=(i/12)*Math.PI*2;
+    // skip where text is, but keep subtle
+    dot(cx+Math.cos(a)*r*0.875, cy+Math.sin(a)*r*0.875, r*0.007);
+  }
+  X.restore();
+}
+
+function drawScallop(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // base maroon
+  X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.985,0,Math.PI*2); X.fill();
+  // inner cream line
+  X.strokeStyle='rgba(255,248,225,0.9)'; X.lineWidth=r*0.018; X.beginPath(); X.arc(cx,cy,r*0.88,0,Math.PI*2); X.stroke();
+  // outer gold rim
+  X.strokeStyle=c.s; X.lineWidth=r*0.03; X.beginPath(); X.arc(cx,cy,r*0.985,0,Math.PI*2); X.stroke();
+  // scallops: 48 outward arches
+  const n=48;
+  X.fillStyle=c.f; X.strokeStyle=c.s; X.lineWidth=1;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2;
+    const sx=cx+Math.cos(a)*r*0.985, sy=cy+Math.sin(a)*r*0.985;
+    // small outer circle scallop
+    X.beginPath();
+    X.arc(sx, sy, r*0.042, a-Math.PI/2, a+Math.PI/2);
+    // alternatively simple dot scallop
+    X.fill(); X.stroke();
+  }
+  // gold dots on inner rim
+  X.fillStyle=c.s;
+  for(let i=0;i<32;i++){
+    const a=(i/32)*Math.PI*2;
+    dot(cx+Math.cos(a)*r*0.88, cy+Math.sin(a)*r*0.88, r*0.016);
+  }
+  X.fillStyle='rgba(255,255,255,0.92)';
+  for(let i=0;i<32;i++){
+    const a=(i/32)*Math.PI*2;
+    dot(cx+Math.cos(a)*r*0.88, cy+Math.sin(a)*r*0.88, r*0.006);
+  }
+  X.restore();
+}
+
+function drawDotsOuter(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t*0.95;
+  const n=60;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + frame*0.0035;
+    const isBig=i%5===0;
+    const rad=isBig? r*0.032 : r*0.016;
+    const dist=r*0.985;
+    const x=cx+Math.cos(a)*dist, y=cy+Math.sin(a)*dist;
+    // petal-like small flower every 5
+    if(isBig){
+      // tiny 5-petal flower
+      X.save(); X.translate(x,y); X.rotate(a);
+      X.fillStyle=c.f;
+      for(let k=0;k<5;k++){
+        const ka=k/5*Math.PI*2;
+        X.beginPath();
+        X.ellipse(Math.cos(ka)*rad*0.55, Math.sin(ka)*rad*0.55, rad*0.38, rad*0.22, ka, 0, Math.PI*2);
+        X.fill();
+      }
+      X.fillStyle=c.s; dot(0,0,rad*0.32);
+      X.fillStyle='#FFFFFF'; dot(-rad*0.08,-rad*0.08,rad*0.10);
+      X.restore();
+    } else {
+      X.fillStyle=c.f; dot(x,y,rad);
+      X.fillStyle='rgba(255,255,255,0.45)'; dot(x - rad*0.25, y - rad*0.25, rad*0.35);
+    }
+  }
+  X.restore();
+}
+
+function drawOutermost(cx,cy,r,t,c){
+  X.save(); X.globalAlpha=t;
+  // ultra thin outer gold ring with glow
+  X.shadowColor='rgba(255,213,79,0.55)'; X.shadowBlur=r*0.08;
+  X.strokeStyle=c.s; X.lineWidth=r*0.018;
+  X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.stroke();
+  X.shadowColor='transparent';
+  // second inner hairline
+  X.strokeStyle='rgba(255,213,79,0.28)'; X.lineWidth=0.8;
+  X.beginPath(); X.arc(cx,cy,r*0.965,0,Math.PI*2); X.stroke();
+  // sparkle ticks
+  X.strokeStyle='rgba(255,213,79,0.55)'; X.lineWidth=0.9;
+  for(let i=0;i<48;i++){
+    const a=(i/48)*Math.PI*2;
+    const r0=r*0.995, r1=r*1.01;
+    X.beginPath();
+    X.moveTo(cx+Math.cos(a)*r0, cy+Math.sin(a)*r0);
+    X.lineTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+    X.stroke();
+  }
+  X.restore();
+}
+
+const RINGS = [
+  {draw:drawCenter,    r:0.088,  name:'Nilavilakku Lotus+Gear'},
+  {draw:drawPetals12,   r:0.168,  name:'Crimson Lotus 12'},
+  {draw:drawPetals16,   r:0.248,  name:'Orange Lotus 16'},
+  {draw:drawYantra,     r:0.322,  name:'Sri-Yantra Gold'},
+  {draw:drawDiamondBand,r:0.395,  name:'Diamond Band'},
+  {draw:drawLargeLotus, r:0.485,  name:'Emerald Lotus'},
+  {draw:drawPulliKolam, r:0.565,  name:'Pulli Kolam'},
+  {draw:drawPaisley,    r:0.645,  name:'Paisley Mango'},
+  {draw:drawTextRing,   r:0.74,   name:'TinkerHub Ring'},
+  {draw:drawScallop,    r:0.835,  name:'Scallop Border'},
+  {draw:drawDotsOuter,  r:0.92,   name:'Flower Rim'},
+  {draw:drawOutermost,  r:0.985,  name:'Outer Glow'},
+];
+
+// ── falling petals — denser + more lively ──
+function initFalling(){
+  falling=[];
+  const count = 36;
+  for(let i=0;i<count;i++){
+    falling.push({
+      x: Math.random()*W,
+      y: Math.random()*W - W*1.2,
+      vx: (Math.random()-0.5)*0.7,
+      vy: 0.65+Math.random()*1.4,
+      rot: Math.random()*Math.PI*2,
+      vr: (Math.random()-0.5)*0.06,
+      size: 5+Math.random()*8,
+      col: Math.random()<0.5? '#FFB300' : (Math.random()<0.5? '#C41E3A' : '#FF8C00'),
+      alpha: 0.55+Math.random()*0.35,
+      shape: Math.floor(Math.random()*2) // 0 petal, 1 round
+    });
+  }
+}
+initFalling();
+
+// ── background ──
+function drawBg(){
+  // deep gradient
+  const bg = palette.bg;
+  const g = X.createRadialGradient(CX,CY,0,CX,CY, W*0.72);
+  g.addColorStop(0, bg[1]);
+  g.addColorStop(0.42, bg[0]);
+  g.addColorStop(0.78, bg[2]);
+  g.addColorStop(1, '#010101');
+  X.fillStyle=g; X.fillRect(0,0,W,W);
+  // subtle radial light from center (pookalam glow)
+  const lg = X.createRadialGradient(CX,CY,0,CX,CY, R*1.18);
+  lg.addColorStop(0,'rgba(255,180,0,0.07)');
+  lg.addColorStop(0.45,'rgba(255,120,0,0.03)');
+  lg.addColorStop(1,'rgba(0,0,0,0)');
+  X.fillStyle=lg; X.beginPath(); X.arc(CX,CY,R*1.18,0,Math.PI*2); X.fill();
+  // light rays from center (very subtle)
+  X.save(); X.globalAlpha=0.035; X.strokeStyle='#FFD54F'; X.lineWidth=0.6;
+  for(let i=0;i<24;i++){
+    const a=(i/24)*Math.PI*2 + frame*0.00007;
+    X.beginPath();
+    X.moveTo(CX+Math.cos(a)*R*0.08, CY+Math.sin(a)*R*0.08);
+    X.lineTo(CX+Math.cos(a)*W*0.58, CY+Math.sin(a)*W*0.58);
+    X.stroke();
+  }
+  X.restore();
+  // noise grain (tiny dots)
+  X.save(); X.globalAlpha=0.035;
+  for(let i=0;i<180;i++){
+    const x=(Math.sin(i*12.9898)*43758.5453 %1)*W;
+    const y=(Math.sin(i*78.233)*43758.5 %1)*W;
+    // cheap pseudo random
+    const rx = (i*73 % W), ry=(i*97 % W);
+    X.fillStyle = i%3===0? '#FFD54F':'#FFFFFF';
+    X.fillRect(rx, ry, 0.7, 0.7);
+  }
+  X.restore();
+}
+
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.015; p.vx*=0.998; p.life-=p.decay;
+    if(p.life<=0) particles.splice(i,1);
+  }
+  for(let i=ripples.length-1;i>=0;i--){
+    const r=ripples[i];
+    r.r+=2.2; r.life-=0.018;
+    if(r.life<=0) ripples.splice(i,1);
+  }
+  // falling
+  for(const f of falling){
+    f.x+=f.vx + Math.sin(frame*0.012 + f.rot)*0.18;
+    f.y+=f.vy; f.rot+=f.vr;
+    if(f.y > W+18){ f.y=-18; f.x=Math.random()*W; }
+    if(f.x< -10) f.x=W+10; if(f.x> W+10) f.x=-10;
+  }
+}
+function drawFalling(){
+  for(const f of falling){
+    X.save(); X.globalAlpha=f.alpha*0.72; X.translate(f.x,f.y); X.rotate(f.rot);
+    if(f.shape===0){
+      // petal
+      X.fillStyle=f.col;
+      X.beginPath();
+      X.moveTo(0,0);
+      X.bezierCurveTo(f.size*0.45, -f.size*0.32, f.size*0.45, -f.size*0.72, 0, -f.size);
+      X.bezierCurveTo(-f.size*0.45, -f.size*0.72, -f.size*0.45, -f.size*0.32, 0,0);
+      X.closePath(); X.fill();
+      X.fillStyle='rgba(255,255,255,0.28)';
+      X.beginPath();
+      X.moveTo(0,0); X.lineTo(0,-f.size*0.78); X.strokeStyle='rgba(255,255,255,0.35)'; X.lineWidth=0.6; X.stroke();
+    } else {
+      X.fillStyle=f.col;
+      X.beginPath(); X.arc(0,0,f.size*0.38,0,Math.PI*2); X.fill();
+      X.fillStyle='rgba(255,255,255,0.55)'; X.beginPath(); X.arc(-f.size*0.12,-f.size*0.12,f.size*0.14,0,Math.PI*2); X.fill();
+    }
+    X.restore();
+  }
+}
+function drawParticles(){
+  for(const p of particles){
+    X.save(); X.globalAlpha=p.life*(p.glow?0.85:0.55);
+    X.fillStyle=p.col;
+    X.shadowColor=p.col; X.shadowBlur=p.glow?10:0;
+    X.beginPath(); X.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); X.fill();
+    if(p.glow){
+      X.globalAlpha=p.life*0.18;
+      X.beginPath(); X.arc(p.x,p.y,p.size*p.life*2.6,0,Math.PI*2); X.fill();
+    }
+    X.restore();
+  }
+  for(const r of ripples){
+    X.save(); X.globalAlpha=r.life*0.45;
+    X.strokeStyle=palette.c; X.lineWidth=1.4 * r.life;
+    X.shadowColor=palette.c; X.shadowBlur=8;
+    X.beginPath(); X.arc(r.x,r.y,r.r,0,Math.PI*2); X.stroke();
+    X.shadowColor='transparent';
+    X.globalAlpha=r.life*0.12;
+    X.fillStyle=palette.c; X.beginPath(); X.arc(r.x,r.y,r.r,0,Math.PI*2); X.fill();
+    X.restore();
+  }
+}
+
+// ── main loop ──
+function render(){
+  frame++;
+  if(!paused){
+    progress+=0.0048*speed;
+    bloomPhase = Math.min(1, bloomPhase + 0.014*speed);
+    if(progress>1.22) progress=1.22;
+    // auto cycle theme every ~14s after bloom for extra dynamism
+    if(progress>=1 && frame%840===0){
+      cycleTheme();
+    }
+  }
+  drawBg();
+  drawFalling();
+
+  // soft outer shadow under pookalam
+  X.save();
+  X.fillStyle='rgba(0,0,0,0.45)';
+  X.shadowColor='rgba(0,0,0,0.7)'; X.shadowBlur=30;
+  X.beginPath(); X.arc(CX,CY,R*0.985,0,Math.PI*2); X.fill();
+  X.restore();
+
+  const p=Math.min(progress,1);
+  // draw back to front so center on top? Actually we want outer first then center on top? Traditional is center inner. So draw outermost first, center last for depth.
+  // But we want bloom center-out, so draw in order but clip by progress. Draw from outer to inner? We'll draw in RINGS order but outer will be drawn first visually behind? Actually canvas draws in order: later draws on top. So drawing center last keeps it visible. Our RINGS is center->outer, so center would be behind outer if we draw sequentially. So reverse: draw outer first, center last, but bloom still center-out by alpha. Let's draw reversed for correct layering.
+  for(let idx=RINGS.length-1; idx>=0; idx--){
+    const ring=RINGS[idx];
+    const orderIdx = idx; // 0=center, 11=outer
+    const start = (orderIdx / RINGS.length)*0.78;
+    const dur = 0.32;
+    const end = start + dur;
+    let rp = (p - start)/(end - start);
+    rp = Math.max(0, Math.min(1, rp));
+    const ep = easeOutBack(rp);
+    if(ep<=0) continue;
+    const rr = ring.r * R;
+    const col = palette.rings[idx % palette.rings.length];
+    // dynamic breathe + rotation after bloom - much more alive
+    const breathe = 1 + Math.sin(frame*0.015 + idx*0.62)*0.014 * ep;
+    // add gentle whole-ring rotation sweep (alternate, but keep text readable)
+    const isText = idx===8;
+    const ringRot = isText ? 0 : (idx%2===0? 1 : -1) * frame*0.0009 * ep;
+    // shimmer highlight sweeps every ~4s
+    const shimmer = (Math.sin(frame*0.025 + idx) + 1)/2;
+    // bloom scale = ep but with breathe
+    X.save();
+    // apply rotation + breathe
+    X.translate(CX,CY);
+    X.rotate(ringRot);
+    if(rp<1){
+      const s = 0.72 + 0.28*ep;
+      X.scale(s,s);
+    } else {
+      X.scale(breathe,breathe);
+    }
+    X.translate(-CX,-CY);
+    // add shimmer overlay for gold rings
+    X.save();
+    X.globalAlpha = ep * (0.12 + shimmer*0.10);
+    ring.draw(CX,CY,rr, ep, col);
+    X.restore();
+    // main draw with shimmer stroke boost
+    if(shimmer > 0.85){
+      X.shadowColor = col.s;
+      X.shadowBlur = 12 * ep;
+    }
+    ring.draw(CX,CY,rr, ep, col);
+    X.shadowColor='transparent';
+    X.restore();
+    // sparkle burst when ring completes
+    if(rp>=0.985 && !ring._done){
+      for(let k=0;k<10;k++){
+        const a=Math.random()*Math.PI*2, d=Math.random()*rr*0.5;
+        particles.push({
+          x:CX+Math.cos(a)*d, y:CY+Math.sin(a)*d,
+          vx:Math.cos(a)*(0.9+Math.random()*1.2), vy:Math.sin(a)*(0.9+Math.random()*1.2),
+          life:1, decay:0.019+Math.random()*0.014, col:col.s, size:1.4+Math.random()*1.8, glow:true
+        });
+      }
+      ring._done=true;
+    }
+  }
+
+  updateParticles();
+  drawParticles();
+
+  // center highlight after complete - strong pulse + rotating rays
+  if(p>=1){
+    const pulse = 0.10 + Math.sin(frame*0.035)*0.06;
+    X.save(); X.globalAlpha=pulse;
+    X.fillStyle='#FFD54F';
+    X.shadowColor='#FFD54F'; X.shadowBlur=18;
+    X.beginPath(); X.arc(CX,CY,R*0.078,0,Math.PI*2); X.fill();
+    X.restore();
+    // rotating golden rays
+    X.save(); X.globalAlpha=0.045; X.strokeStyle='#FFD54F'; X.lineWidth=1;
+    X.translate(CX,CY); X.rotate(frame*0.004);
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2;
+      X.beginPath();
+      X.moveTo(Math.cos(a)*R*0.09, Math.sin(a)*R*0.09);
+      X.lineTo(Math.cos(a)*R*0.42, Math.sin(a)*R*0.42);
+      X.stroke();
+    }
+    X.restore();
+  }
+  // mouse light follows cursor - interactive glow
+  if(mouse.active){
+    const g = X.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, R*0.45);
+    g.addColorStop(0, 'rgba(255,215,80,0.18)');
+    g.addColorStop(0.35, 'rgba(255,180,0,0.08)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    X.fillStyle=g; X.beginPath(); X.arc(mouse.x, mouse.y, R*0.45,0,Math.PI*2); X.fill();
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ── controls ──
+function togglePause(){
+  paused=!paused;
+  document.getElementById('pauseBtn').textContent=paused?'Resume':'Pause';
+}
+function cycleTheme(){
+  palIdx=(palIdx+1)%palKeys.length;
+  palName=palKeys[palIdx];
+  palette=PALETTES[palName];
+  document.getElementById('themeLabel').textContent=palette.name;
+  // burst
+  for(let i=0;i<20;i++){
+    const a=Math.random()*Math.PI*2;
+    particles.push({x:CX,y:CY,vx:Math.cos(a)*2.2,vy:Math.sin(a)*2.2,life:1,decay:0.02,col:palette.c,size:2,glow:true});
+  }
+}
+function toggleBloom(){ restart(); }
+function restart(){
+  progress=0; bloomPhase=0; paused=false; frame=0;
+  particles=[]; ripples=[];
+  RINGS.forEach(r=>r._done=false);
+  document.getElementById('pauseBtn').textContent='Pause';
+}
+function savePNG(){
+  // render at 2x for high-res export (offscreen)
+  const s = 2400;
+  const tmp=document.createElement('canvas'); tmp.width=s; tmp.height=s;
+  const tx=tmp.getContext('2d');
+  // temporarily swap globals
+  const old={W,CX,CY,R,C,X, DPR};
+  // we need to re-render one frame at high res without animation loops
+  // Simpler: just save current canvas at high quality
+  const a=document.createElement('a');
+  a.download='CODE-A-POOKALAM-2026-TinkerHub-RIT.png';
+  // upscale current canvas via toDataURL is already DPR crisp
+  a.href=C.toDataURL('image/png');
+  a.click();
+}
+
+// keyboard
+addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); togglePause(); }
+  if(e.code==='KeyT') cycleTheme();
+  if(e.code==='KeyS'){ e.preventDefault(); savePNG(); }
+  if(e.code==='KeyR') restart();
+  if(e.code==='KeyB') restart();
+  if(e.code==='Equal'||e.code==='NumpadAdd') speed=Math.min(speed+0.4, 3);
+  if(e.code==='Minus'||e.code==='NumpadSubtract') speed=Math.max(speed-0.4, 0.35);
+});
+
+// auto bloom on load with delay for cinematic feel
+setTimeout(()=>{ progress=0; }, 120);
+render();
+</script>
+</body>
+</html>
