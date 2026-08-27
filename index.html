@@ -287,8 +287,8 @@ function drawCenter(cx,cy,r,t,c){
   X.fillStyle = radialGrad(cx,cy, r*0.2, r, [[0,'#a80000'],[0.6,c.f],[1,'#5a0000']]);
   X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.fill();
   X.shadowColor='transparent';
-  // TinkerHub gear ring — 16 teeth rotating around center (maker identity, subtle)
-  X.save(); X.translate(cx,cy); X.rotate(frame*0.008);
+  // TinkerHub gear ring — 16 teeth COUNTER-CLOCKWISE (inner)
+  X.save(); X.translate(cx,cy); X.rotate(-frame*0.009);
   X.strokeStyle='rgba(255,213,79,0.85)'; X.lineWidth=r*0.045; X.fillStyle='rgba(255,213,79,0.12)';
   X.beginPath(); X.arc(0,0,r*0.82,0,Math.PI*2); X.fill(); X.stroke();
   // gear teeth
@@ -310,11 +310,11 @@ function drawCenter(cx,cy,r,t,c){
   // inner cream disc
   X.fillStyle = radialGrad(cx,cy,0,r*0.62, [[0,'#FFFDE7'],[0.5,'#FFECB3'],[1,'#FFD54F']]);
   X.beginPath(); X.arc(cx,cy,r*0.62,0,Math.PI*2); X.fill();
-  // 3-layer lotus — outer 12, mid 8, inner 6 (dense, not boring)
+  // 3-layer lotus — ALL COUNTER-CLOCKWISE, diff speeds for moiré
   const layers = [
-    {n:12, len:0.55, wid:0.13, col:'#C41E3A', rot: frame*0.006},
-    {n:8,  len:0.42, wid:0.11, col:'#E65100', rot: -frame*0.005},
-    {n:6,  len:0.32, wid:0.09, col:'#8B0000', rot: frame*0.004},
+    {n:12, len:0.55, wid:0.13, col:'#C41E3A', rot: -frame*0.007},
+    {n:8,  len:0.42, wid:0.11, col:'#E65100', rot: -frame*0.0055},
+    {n:6,  len:0.32, wid:0.09, col:'#8B0000', rot: -frame*0.009},
   ];
   layers.forEach(L=>{
     for(let i=0;i<L.n;i++){
@@ -346,7 +346,7 @@ function drawCenter(cx,cy,r,t,c){
 
 function drawPetals12(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
-  const n=12, rot = frame*0.0045;
+  const n=12, rot = -frame*0.0055;
   for(let i=0;i<n;i++){
     const a=(i/n)*Math.PI*2 + rot;
     const dist = Math.hypot(mouse.x-cx, mouse.y-cy);
@@ -407,7 +407,7 @@ function drawYantra(cx,cy,r,t,c){
   X.beginPath(); X.arc(cx,cy,r*0.60,0,Math.PI*2); X.stroke();
   // Sri-Yantra approximation — 9 interlocked triangles (4 up, 5 down)
   // This is the dense sacred geometry that screams "code complexity"
-  X.save(); X.translate(cx,cy); X.rotate(frame*0.0018);
+  X.save(); X.translate(cx,cy); X.rotate(-frame*0.0024);
   const tri = (size, up, alpha, lw)=>{
     X.save();
     if(!up) X.rotate(Math.PI);
@@ -441,10 +441,10 @@ function drawYantra(cx,cy,r,t,c){
   });
   X.restore();
   X.restore();
-  // binding dots — where triangles intersect (8 outer + 4 inner)
+  // binding dots — CCW
   X.fillStyle=c.s;
   for(let i=0;i<8;i++){
-    const a=(i/8)*Math.PI*2 + frame*0.0025;
+    const a=(i/8)*Math.PI*2 - frame*0.0032;
     const rad = r*(0.60 + Math.sin(frame*0.008+i)*0.015);
     X.beginPath(); X.arc(cx+Math.cos(a)*rad, cy+Math.sin(a)*rad, r*0.029,0,Math.PI*2); X.fill();
     // highlight
@@ -464,8 +464,9 @@ function drawDiamondBand(cx,cy,r,t,c){
   X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.fill();
   X.fillStyle='rgba(0,0,0,0.04)'; X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.fill();
   const n=24;
+  const rot = -frame*0.0018; // CCW
   for(let i=0;i<n;i++){
-    const a=(i/n)*Math.PI*2, na=((i+0.5)/n)*Math.PI*2;
+    const a=(i/n)*Math.PI*2 + rot, na=((i+0.5)/n)*Math.PI*2 + rot;
     const inner=r*0.71, outer=r*0.95, midR=r*0.83;
     // diamond
     X.beginPath();
@@ -492,7 +493,7 @@ function drawDiamondBand(cx,cy,r,t,c){
 
 function drawLargeLotus(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
-  const n=24, rot=frame*0.0022;
+  const n=24, rot=-frame*0.0035;
   // subtle radial backdrop
   const bg = radialGrad(cx,cy,r*0.3,r, [[0,'rgba(255,255,255,0)'],[0.7,'rgba(46,125,50,0.06)'],[1,'rgba(46,125,50,0.14)']]);
   X.fillStyle=bg; X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.fill();
@@ -537,11 +538,12 @@ function drawPulliKolam(cx,cy,r,t,c){
     X.beginPath(); X.arc(cx,cy,r*(0.82+i*0.05),0,Math.PI*2); X.stroke();
   }
   const n=20, dotR=r*0.031, orbitR=r*0.83;
-  // dots
+  const rot = -frame*0.0015; // CCW
+  // dots — counter-clockwise
   X.fillStyle='#4E342E';
   const pts=[];
   for(let i=0;i<n;i++){
-    const a=(i/n)*Math.PI*2;
+    const a=(i/n)*Math.PI*2 + rot;
     const x=cx+Math.cos(a)*orbitR, y=cy+Math.sin(a)*orbitR;
     pts.push({x,y,a});
     X.beginPath(); X.arc(x,y,dotR,0,Math.PI*2); X.fill();
@@ -568,11 +570,17 @@ function drawPulliKolam(cx,cy,r,t,c){
   X.strokeStyle='rgba(78,52,46,0.18)'; X.lineWidth=1;
   X.beginPath(); X.arc(cx,cy,r*0.71,0,Math.PI*2); X.stroke();
   X.beginPath(); X.arc(cx,cy,r*0.96,0,Math.PI*2); X.stroke();
-  // tiny marigold dots on kolam path
+  // tiny marigold dots on kolam path — also CCW
   X.fillStyle='#FFB300';
   for(let i=0;i<n;i++){
-    const a=((i+0.5)/n)*Math.PI*2;
+    const a=((i+0.5)/n)*Math.PI*2 + rot;
     dot(cx+Math.cos(a)*r*0.76, cy+Math.sin(a)*r*0.76, r*0.016);
+  }
+  // pulsating inner dots
+  X.fillStyle=`rgba(255,179,0,${0.6+Math.sin(frame*0.05)*0.3})`;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2 + rot;
+    dot(cx+Math.cos(a)*r*0.62, cy+Math.sin(a)*r*0.62, r*0.012);
   }
   X.restore();
 }
@@ -719,33 +727,36 @@ function drawTextRing(cx,cy,r,t,c){
 
 function drawScallop(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
-  // base maroon
-  X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.985,0,Math.PI*2); X.fill();
-  // inner cream line
+  // base maroon — pulsating
+  const pulse = 1 + Math.sin(frame*0.018)*0.015;
+  X.fillStyle=c.f; X.beginPath(); X.arc(cx,cy,r*0.985*pulse,0,Math.PI*2); X.fill();
+  // inner cream line — CCW slow
+  const rotScallop = -frame*0.0009;
   X.strokeStyle='rgba(255,248,225,0.9)'; X.lineWidth=r*0.018; X.beginPath(); X.arc(cx,cy,r*0.88,0,Math.PI*2); X.stroke();
   // outer gold rim
-  X.strokeStyle=c.s; X.lineWidth=r*0.03; X.beginPath(); X.arc(cx,cy,r*0.985,0,Math.PI*2); X.stroke();
-  // scallops: 48 outward arches
+  X.strokeStyle=c.s; X.lineWidth=r*0.03; X.beginPath(); X.arc(cx,cy,r*0.985*pulse,0,Math.PI*2); X.stroke();
+  // scallops: 48 outward arches — CCW
   const n=48;
   X.fillStyle=c.f; X.strokeStyle=c.s; X.lineWidth=1;
   for(let i=0;i<n;i++){
-    const a=(i/n)*Math.PI*2;
-    const sx=cx+Math.cos(a)*r*0.985, sy=cy+Math.sin(a)*r*0.985;
+    const a=(i/n)*Math.PI*2 + rotScallop;
+    const sx=cx+Math.cos(a)*r*0.985*pulse, sy=cy+Math.sin(a)*r*0.985*pulse;
     // small outer circle scallop
     X.beginPath();
     X.arc(sx, sy, r*0.042, a-Math.PI/2, a+Math.PI/2);
     // alternatively simple dot scallop
     X.fill(); X.stroke();
   }
-  // gold dots on inner rim
+  // gold dots on inner rim — CCW
   X.fillStyle=c.s;
   for(let i=0;i<32;i++){
-    const a=(i/32)*Math.PI*2;
-    dot(cx+Math.cos(a)*r*0.88, cy+Math.sin(a)*r*0.88, r*0.016);
+    const a=(i/32)*Math.PI*2 + rotScallop*1.2;
+    const pulseDot = 1 + Math.sin(frame*0.04 + i*0.5)*0.2;
+    dot(cx+Math.cos(a)*r*0.88, cy+Math.sin(a)*r*0.88, r*0.016*pulseDot);
   }
   X.fillStyle='rgba(255,255,255,0.92)';
   for(let i=0;i<32;i++){
-    const a=(i/32)*Math.PI*2;
+    const a=(i/32)*Math.PI*2 + rotScallop*1.2;
     dot(cx+Math.cos(a)*r*0.88, cy+Math.sin(a)*r*0.88, r*0.006);
   }
   X.restore();
@@ -754,11 +765,14 @@ function drawScallop(cx,cy,r,t,c){
 function drawDotsOuter(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t*0.95;
   const n=60;
+  const rotOuter = -frame*0.0022; // CCW — all parts CCW
   for(let i=0;i<n;i++){
-    const a=(i/n)*Math.PI*2 + frame*0.0035;
+    const a=(i/n)*Math.PI*2 + rotOuter;
+    // pulsate radius
+    const pulse = 1 + Math.sin(frame*0.02 + i*0.3)*0.06;
     const isBig=i%5===0;
-    const rad=isBig? r*0.032 : r*0.016;
-    const dist=r*0.985;
+    const rad=(isBig? r*0.032 : r*0.016) * pulse;
+    const dist=r*0.985 * (1 + Math.sin(frame*0.015 + i)*0.015);
     const x=cx+Math.cos(a)*dist, y=cy+Math.sin(a)*dist;
     // petal-like small flower every 5
     if(isBig){
@@ -784,24 +798,30 @@ function drawDotsOuter(cx,cy,r,t,c){
 
 function drawOutermost(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
-  // ultra thin outer gold ring with glow
-  X.shadowColor='rgba(255,213,79,0.55)'; X.shadowBlur=r*0.08;
+  // ultra thin outer gold ring with glow — pulsating CCW
+  const pulseOut = 1 + Math.sin(frame*0.022)*0.018;
+  const rotOut = -frame*0.0012;
+  X.shadowColor='rgba(255,213,79,0.55)'; X.shadowBlur=r*0.08*pulseOut;
   X.strokeStyle=c.s; X.lineWidth=r*0.018;
-  X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.stroke();
+  X.beginPath(); X.arc(cx,cy,r*pulseOut,0,Math.PI*2); X.stroke();
   X.shadowColor='transparent';
-  // second inner hairline
+  // second inner hairline — CCW
   X.strokeStyle='rgba(255,213,79,0.28)'; X.lineWidth=0.8;
-  X.beginPath(); X.arc(cx,cy,r*0.965,0,Math.PI*2); X.stroke();
-  // sparkle ticks
+  X.beginPath(); X.arc(cx,cy,r*0.965*pulseOut,0,Math.PI*2); X.stroke();
+  // sparkle ticks — CCW
   X.strokeStyle='rgba(255,213,79,0.55)'; X.lineWidth=0.9;
   for(let i=0;i<48;i++){
-    const a=(i/48)*Math.PI*2;
-    const r0=r*0.995, r1=r*1.01;
+    const a=(i/48)*Math.PI*2 + rotOut;
+    const r0=r*0.995*pulseOut, r1=r*1.01*pulseOut;
+    // twinkle
+    const alpha = 0.5 + Math.sin(frame*0.08 + i*0.7)*0.5;
+    X.globalAlpha = t * (0.6 + alpha*0.4);
     X.beginPath();
     X.moveTo(cx+Math.cos(a)*r0, cy+Math.sin(a)*r0);
     X.lineTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
     X.stroke();
   }
+  X.globalAlpha=t;
   X.restore();
 }
 
@@ -949,8 +969,8 @@ function drawParticles(){
 function render(){
   frame++;
   if(!paused){
-    progress+=0.0048*speed;
-    bloomPhase = Math.min(1, bloomPhase + 0.014*speed);
+    progress+=0.0065*speed;
+    bloomPhase = Math.min(1, bloomPhase + 0.016*speed);
     if(progress>1.22) progress=1.22;
     // auto cycle theme every ~14s after bloom for extra dynamism
     if(progress>=1 && frame%840===0){
