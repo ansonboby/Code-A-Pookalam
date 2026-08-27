@@ -570,9 +570,9 @@ function drawTextRing(cx,cy,r,t,c){
   X.strokeStyle='rgba(255,213,79,0.45)'; X.lineWidth=1.2;
   X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.stroke();
   X.beginPath(); X.arc(cx,cy,r*0.76,0,Math.PI*2); X.stroke();
-  // circular text - top and bottom
-  const textTop = "  ✦  TINKERHUB  ✦  RIT KOTTAYAM  ✦  CODE-A-POOKALAM 2026  ✦  ";
-  const textBot = "  🌸  ONAM 2026  🌸  CREATED WITH CODE & TRADITION  🌸  ";
+  // circular text - top and bottom — spaced + LOVE
+  const textTop = "  ✦  TINKERHUB  ✦  RIT  ·  KOTTAYAM  ✦  CODE-A-POOKALAM 2026  ✦  ";
+  const textBot = "  🌸  ONAM 2026  🌸  CREATED WITH LOVE  🌸  ";
   function drawCircularText(str, radius, fontSize, color, rotOffset){
     X.save();
     X.translate(cx,cy);
