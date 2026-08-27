@@ -54,12 +54,7 @@ Every petal is a **cubic Bezier curve**, every gradient is computed with polar m
   11. Flower rim — 60 marigold dots + 12 tiny 5-petal flowers rotating `0.0035`
   12. Outer golden glow with 48 sparkle ticks
 
-- **Cinematic bloom + perpetual motion** — `easeOutBack` staggered center-out, each ring bursts particles, then **every ring breathes `0.014` + counter-rotates `0.0009` + shimmer sweep** — no longer static!
-- **4 themes + auto-cycle** (press `T` or wait 14s):
-  - `TRADITIONAL · ONAM` — maroon / gold / green / cream
-  - `ROYAL · KERALA` — deep purple / gold
-  - `SUNSET · VIBRANT` — vermillion / amber
-  - `FOREST · BLOOM` — emerald / cream
+- **Cinematic bloom + buttery-smooth perpetual motion** — `easeOutBack` staggered center-out (time-based `dt` for 60fps smoothness), each ring bursts particles, then **every ring breathes `0.014` + counter-rotates `0.0009` + shimmer** — single `TRADITIONAL · ONAM` palette as in screenshot (maroon / gold / green / cream)
 
 - **Interactivity that wows judges:**
   - **Hover** — petals near cursor swell `+18%`
@@ -78,7 +73,6 @@ Every petal is a **cubic Bezier curve**, every gradient is computed with polar m
 | Key | Action |
 |-----|--------|
 | `Space` | Pause / Resume |
-| `T` | Cycle theme (4 palettes) |
 | `S` | Save high-res PNG |
 | `R` / `B` | Replay bloom (restart) |
 | `+` / `-` | Speed up / Slow down |

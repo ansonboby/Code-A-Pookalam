@@ -108,10 +108,9 @@
 <div id="controls">
   <button class="btn primary" onclick="toggleBloom()" id="bloomBtn">Bloom</button>
   <button class="btn" onclick="togglePause()" id="pauseBtn">Pause</button>
-  <button class="btn" onclick="cycleTheme()">Theme</button>
   <button class="btn" onclick="savePNG()">Save PNG</button>
 </div>
-<div id="hint"><b>CLICK</b> TO RIPPLE &nbsp;·&nbsp; <b>HOVER</b> TO GLOW<br><b>T</b> THEME &nbsp;·&nbsp; <b>SPACE</b> PAUSE &nbsp;·&nbsp; <b>S</b> SAVE</div>
+<div id="hint"><b>CLICK</b> TO RIPPLE &nbsp;·&nbsp; <b>HOVER</b> TO GLOW<br><b>SPACE</b> PAUSE &nbsp;·&nbsp; <b>S</b> SAVE</div>
 
 <script>
 /* ─────────────────────────────────────────
@@ -139,92 +138,32 @@ function resize(){
   }
 }
 
-// ── Palettes (carefully tuned Onam colors) ──
-const PALETTES = {
-  traditional: {
-    name:'TRADITIONAL · ONAM',
-    bg:['#140800','#2a0e02','#0a0200'],
-    c:'#FFD54F', // gold stroke
-    rings:[
-      {f:'#8B0000', s:'#FFD54F'}, // center
-      {f:'#C41E3A', s:'#FFD54F'}, // 12 petals crimson
-      {f:'#E65100', s:'#FFE0B2'}, // 16 petals orange
-      {f:'#FFB300', s:'#5D4037'}, // yantra gold
-      {f:'#FFFFFF', s:'#C41E3A'}, // diamond white/crimson
-      {f:'#2E7D32', s:'#A5D6A7'}, // green lotus
-      {f:'#FFF8E1', s:'#8D6E63'}, // pulli kolam cream
-      {f:'#BF360C', s:'#FFCC80'}, // paisley terracotta
-      {f:'#1A1A1A', s:'#FFD54F'}, // text ring
-      {f:'#8B0000', s:'#FFD54F'}, // scallop maroon
-      {f:'#FFB300', s:'#FFFFFF'}, // dots gold
-      {f:'#FFD54F', s:'#8B0000'}, // outer
-    ]
-  },
-  royal: {
-    name:'ROYAL · KERALA',
-    bg:['#0d0a14','#1a1030','#0a0614'],
-    c:'#D4AF37',
-    rings:[
-      {f:'#4A148C', s:'#D4AF37'},
-      {f:'#6A1B9A', s:'#FFD54F'},
-      {f:'#8E24AA', s:'#F8BBD0'},
-      {f:'#FFB300', s:'#4A148C'},
-      {f:'#F3E5F5', s:'#6A1B9A'},
-      {f:'#00695C', s:'#80CBC4'},
-      {f:'#FFF3E0', s:'#6A1B9A'},
-      {f:'#4A148C', s:'#FFB300'},
-      {f:'#0a0a0a', s:'#D4AF37'},
-      {f:'#4A148C', s:'#D4AF37'},
-      {f:'#D4AF37', s:'#FFFFFF'},
-      {f:'#D4AF37', s:'#4A148C'},
-    ]
-  },
-  sunset: {
-    name:'SUNSET · VIBRANT',
-    bg:['#1a0800','#3a1200','#0f0400'],
-    c:'#FF8A65',
-    rings:[
-      {f:'#BF360C', s:'#FFCC80'},
-      {f:'#E64A19', s:'#FFCC80'},
-      {f:'#FF5722', s:'#FFE0B2'},
-      {f:'#FFB300', s:'#BF360C'},
-      {f:'#FFFFFF', s:'#FF5722'},
-      {f:'#F4511E', s:'#FFAB91'},
-      {f:'#FFF3E0', s:'#BF360C'},
-      {f:'#D84315', s:'#FFCC80'},
-      {f:'#1a0a00', s:'#FFB300'},
-      {f:'#BF360C', s:'#FFB300'},
-      {f:'#FF6F00', s:'#FFFFFF'},
-      {f:'#FFB300', s:'#BF360C'},
-    ]
-  },
-  forest: {
-    name:'FOREST · BLOOM',
-    bg:['#021208','#0a2a12','#020a06'],
-    c:'#A5D6A7',
-    rings:[
-      {f:'#1B5E20', s:'#FFD54F'},
-      {f:'#2E7D32', s:'#A5D6A7'},
-      {f:'#388E3C', s:'#C8E6C9'},
-      {f:'#FFB300', s:'#1B5E20'},
-      {f:'#E8F5E9', s:'#2E7D32'},
-      {f:'#004D40', s:'#80CBC4'},
-      {f:'#FFF8E1', s:'#4E342E'},
-      {f:'#33691E', s:'#AED581'},
-      {f:'#0a140a', s:'#FFD54F'},
-      {f:'#1B5E20', s:'#A5D6A7'},
-      {f:'#66BB6A', s:'#FFFFFF'},
-      {f:'#A5D6A7', s:'#1B5E20'},
-    ]
-  }
+// ── Single Theme — TRADITIONAL ONAM (as requested) ──
+const palette = {
+  name:'TRADITIONAL · ONAM',
+  bg:['#140800','#2a0e02','#0a0200'],
+  c:'#FFD54F',
+  rings:[
+    {f:'#8B0000', s:'#FFD54F'},
+    {f:'#C41E3A', s:'#FFD54F'},
+    {f:'#E65100', s:'#FFE0B2'},
+    {f:'#FFB300', s:'#5D4037'},
+    {f:'#FFFFFF', s:'#C41E3A'},
+    {f:'#2E7D32', s:'#A5D6A7'},
+    {f:'#FFF8E1', s:'#8D6E63'},
+    {f:'#BF360C', s:'#FFCC80'},
+    {f:'#1A1A1A', s:'#FFD54F'},
+    {f:'#8B0000', s:'#FFD54F'},
+    {f:'#FFB300', s:'#FFFFFF'},
+    {f:'#FFD54F', s:'#8B0000'},
+  ]
 };
 
-let palKeys = Object.keys(PALETTES), palIdx=0, palName='traditional';
-let palette = PALETTES[palName];
 let paused=false, progress=0, frame=0, speed=1;
 let particles=[], ripples=[], falling=[];
 let mouse={x:-9999,y:-9999, active:false};
-let bloomPhase=0; // 0..1 for initial bloom
+let bloomPhase=0;
+let lastNow = performance.now();
 resize();
 addEventListener('resize', ()=>{ resize(); });
 
@@ -945,17 +884,15 @@ function drawParticles(){
   }
 }
 
-// ── main loop ──
-function render(){
-  frame++;
+// ── main loop — time-based for buttery smoothness ──
+function render(now){
+  const dt = Math.min((now - lastNow)/16.67, 2); // normalize to 60fps, cap for tab switch
+  lastNow = now;
+  frame += dt;
   if(!paused){
-    progress+=0.0048*speed;
-    bloomPhase = Math.min(1, bloomPhase + 0.014*speed);
+    progress += 0.0032 * dt * speed;
+    bloomPhase = Math.min(1, bloomPhase + 0.010 * dt * speed);
     if(progress>1.22) progress=1.22;
-    // auto cycle theme every ~14s after bloom for extra dynamism
-    if(progress>=1 && frame%840===0){
-      cycleTheme();
-    }
   }
   drawBg();
   drawFalling();
@@ -989,9 +926,8 @@ function render(){
     const ringRot = isText ? 0 : (idx%2===0? 1 : -1) * frame*0.0009 * ep;
     // shimmer highlight sweeps every ~4s
     const shimmer = (Math.sin(frame*0.025 + idx) + 1)/2;
-    // bloom scale = ep but with breathe
+    // bloom scale = ep but with breathe — single draw for smoothness
     X.save();
-    // apply rotation + breathe
     X.translate(CX,CY);
     X.rotate(ringRot);
     if(rp<1){
@@ -1001,15 +937,10 @@ function render(){
       X.scale(breathe,breathe);
     }
     X.translate(-CX,-CY);
-    // add shimmer overlay for gold rings
-    X.save();
-    X.globalAlpha = ep * (0.12 + shimmer*0.10);
-    ring.draw(CX,CY,rr, ep, col);
-    X.restore();
-    // main draw with shimmer stroke boost
+    X.globalAlpha = ep;
     if(shimmer > 0.85){
       X.shadowColor = col.s;
-      X.shadowBlur = 12 * ep;
+      X.shadowBlur = 8 * ep;
     }
     ring.draw(CX,CY,rr, ep, col);
     X.shadowColor='transparent';
@@ -1068,17 +999,6 @@ function togglePause(){
   paused=!paused;
   document.getElementById('pauseBtn').textContent=paused?'Resume':'Pause';
 }
-function cycleTheme(){
-  palIdx=(palIdx+1)%palKeys.length;
-  palName=palKeys[palIdx];
-  palette=PALETTES[palName];
-  document.getElementById('themeLabel').textContent=palette.name;
-  // burst
-  for(let i=0;i<20;i++){
-    const a=Math.random()*Math.PI*2;
-    particles.push({x:CX,y:CY,vx:Math.cos(a)*2.2,vy:Math.sin(a)*2.2,life:1,decay:0.02,col:palette.c,size:2,glow:true});
-  }
-}
 function toggleBloom(){ restart(); }
 function restart(){
   progress=0; bloomPhase=0; paused=false; frame=0;
@@ -1102,10 +1022,9 @@ function savePNG(){
   a.click();
 }
 
-// keyboard
+// keyboard — removed Theme (single palette now)
 addEventListener('keydown', e=>{
   if(e.code==='Space'){ e.preventDefault(); togglePause(); }
-  if(e.code==='KeyT') cycleTheme();
   if(e.code==='KeyS'){ e.preventDefault(); savePNG(); }
   if(e.code==='KeyR') restart();
   if(e.code==='KeyB') restart();
@@ -1113,9 +1032,9 @@ addEventListener('keydown', e=>{
   if(e.code==='Minus'||e.code==='NumpadSubtract') speed=Math.max(speed-0.4, 0.35);
 });
 
-// auto bloom on load with delay for cinematic feel
-setTimeout(()=>{ progress=0; }, 120);
-render();
+// auto bloom — smooth start
+setTimeout(()=>{ progress=0; lastNow=performance.now(); }, 120);
+requestAnimationFrame(render);
 </script>
 </body>
 </html>
