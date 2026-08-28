@@ -123,11 +123,14 @@ const X = C.getContext('2d');
 let DPR = Math.min(devicePixelRatio||1, 2);
 
 let W=600, CX=300, CY=300, R=260;
-// responsive sizing - square, high-DPI (window-based, foolproof)
+// responsive sizing - DPR-capped for perf (large screens DPR 1.5)
 function resize(){
-  DPR = Math.min(devicePixelRatio||1, 2);
-  // 86vmin ensures full pookalam visible even with header/controls
+  const baseDPR = Math.min(devicePixelRatio||1, 2);
   const s = Math.floor(Math.min(innerWidth, innerHeight) * 0.86);
+  // cap DPR on large canvases to keep buffer < 2.5M pixels for 60fps
+  const maxPixels = 2560*2560;
+  const wantedPixels = s*s*baseDPR*baseDPR;
+  DPR = (wantedPixels > maxPixels) ? Math.sqrt(maxPixels/(s*s)) : baseDPR;
   W = s; CX = s/2; CY = s/2; R = s*0.445;
   C.width = s * DPR; C.height = s * DPR;
   C.style.width = s+'px'; C.style.height = s+'px';
@@ -269,7 +272,7 @@ function drawCenter(cx,cy,r,t,c){
       const a=(i/L.n)*Math.PI*2 + L.rot;
       X.save(); X.translate(cx,cy); X.rotate(a);
       X.fillStyle=L.col;
-      // subtle shadow for depth
+      // shadow on fill only (was per-petal save/restore — 26x overhead)
       X.shadowColor='rgba(0,0,0,0.18)'; X.shadowBlur=3;
       petalPath(r*L.len, r*L.wid, t); X.fill();
       X.shadowColor='transparent';
@@ -445,7 +448,6 @@ function drawDiamondBand(cx,cy,r,t,c){
 function drawLargeLotus(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
   const n=24, rot=frame*0.0022;
-  // per-petal seamless wave will be added inside loop
   // subtle radial backdrop
   const bg = radialGrad(cx,cy,r*0.3,r, [[0,'rgba(255,255,255,0)'],[0.7,'rgba(46,125,50,0.06)'],[1,'rgba(46,125,50,0.14)']]);
   X.fillStyle=bg; X.beginPath(); X.arc(cx,cy,r,0,Math.PI*2); X.fill();
@@ -549,13 +551,6 @@ function drawPaisley(cx,cy,r,t,c){
     X.bezierCurveTo(wid*1.1, -r*0.18, wid*0.9, -len*0.55, 0, -len);
     X.bezierCurveTo(-wid*0.7, -len*0.55, -wid*0.5, -r*0.28, 0, -r*0.12);
     X.closePath();
-    // scale by t
-    // we already approximate; apply transform scaling for bloom
-    X.save(); X.scale(t,t); // bloom from center
-    // need to reset path? instead we re-draw scaled – simpler: use scale before path. quick hack: clear and redraw scaled
-    X.restore();
-    // workaround: just fill as is but clip with t via global logic - actual bloom handled by alpha + small scale via ctx scale above.
-    // For simplicity, draw with t scaling via manual
     X.fill();
     X.shadowColor='transparent';
     X.strokeStyle='rgba(255,213,79,0.55)'; X.lineWidth=0.9; X.stroke();
@@ -576,6 +571,8 @@ function drawPaisley(cx,cy,r,t,c){
   X.restore();
 }
 
+const TEXT_TOP = Array.from("  ✦  TINKERHUB  ✦  RIT  ·  KOTTAYAM  ✦  CODE-A-POOKALAM 2026  ✦  ");
+const TEXT_BOT = Array.from("  🌸  ONAM 2026  🌸  CREATED WITH LOVE  🌸  ");
 function drawTextRing(cx,cy,r,t,c){
   X.save(); X.globalAlpha=t;
   // dark band
@@ -585,36 +582,7 @@ function drawTextRing(cx,cy,r,t,c){
   X.strokeStyle='rgba(255,213,79,0.45)'; X.lineWidth=1.2;
   X.beginPath(); X.arc(cx,cy,r*0.99,0,Math.PI*2); X.stroke();
   X.beginPath(); X.arc(cx,cy,r*0.76,0,Math.PI*2); X.stroke();
-  // circular text - top and bottom — spaced + LOVE
-  const textTop = "  ✦  TINKERHUB  ✦  RIT  ·  KOTTAYAM  ✦  CODE-A-POOKALAM 2026  ✦  ";
-  const textBot = "  🌸  ONAM 2026  🌸  CREATED WITH LOVE  🌸  ";
-  function drawCircularText(str, radius, fontSize, color, rotOffset){
-    X.save();
-    X.translate(cx,cy);
-    X.rotate(rotOffset);
-    X.font=`600 ${fontSize}px 'Space Grotesk', sans-serif`;
-    X.fillStyle=color;
-    X.textAlign='center'; X.textBaseline='middle';
-    const totalAngle = str.length * 0.032; // approximate
-    let angle = -totalAngle/2;
-    for(let ch of str){
-      X.save();
-      X.rotate(angle);
-      X.translate(0, -radius);
-      // keep upright for bottom half
-      // if angle > PI/2 etc, flip
-      X.fillText(ch, 0, 0);
-      X.restore();
-      // advance by measured width
-      const w = X.measureText(ch).width;
-      angle += (w / radius) * 1.02;
-    }
-    X.restore();
-  }
-  // Simpler: use strokeText path by rotating each char
-  // Use precise placement
-  function circularArcText(str, radius, startAngle, endAngle, flipBottom){
-    const chars = Array.from(str);
+  function circularArcText(chars, radius, startAngle, endAngle, flipBottom){
     const range = endAngle - startAngle;
     const step = range / chars.length;
     X.font=`600 ${r*0.045}px 'Space Grotesk', sans-serif`;
@@ -632,8 +600,7 @@ function drawTextRing(cx,cy,r,t,c){
       X.restore();
     }
   }
-  function circularArcTextBottom(str, radius, startAngle, endAngle){
-    const chars = Array.from(str);
+  function circularArcTextBottom(chars, radius, startAngle, endAngle){
     const range = endAngle - startAngle;
     const step = range / chars.length;
     X.font=`600 ${r*0.045}px 'Space Grotesk', sans-serif`;
@@ -657,9 +624,9 @@ function drawTextRing(cx,cy,r,t,c){
     }
   }
   // top arc: -122° to +122°
-  circularArcText(textTop, r*0.875, -Math.PI*0.68, Math.PI*0.68, true);
+  circularArcText(TEXT_TOP, r*0.875, -Math.PI*0.68, Math.PI*0.68, true);
   // bottom arc: 122° to 238° via bottom (0.68π to 1.32π is narrow, use 0.32π to 1.68π)
-  circularArcTextBottom(textBot, r*0.875, Math.PI*0.32, Math.PI*1.68);
+  circularArcTextBottom(TEXT_BOT, r*0.875, Math.PI*0.32, Math.PI*1.68);
 
   // decorative small dots between text
   X.fillStyle='rgba(255,213,79,0.45)';
@@ -746,16 +713,16 @@ function drawOutermost(cx,cy,r,t,c){
   // second inner hairline
   X.strokeStyle='rgba(255,213,79,0.28)'; X.lineWidth=0.8;
   X.beginPath(); X.arc(cx,cy,r*0.965,0,Math.PI*2); X.stroke();
-  // sparkle ticks
+  // sparkle ticks (batched into 1 stroke)
   X.strokeStyle='rgba(255,213,79,0.55)'; X.lineWidth=0.9;
+  X.beginPath();
   for(let i=0;i<48;i++){
     const a=(i/48)*Math.PI*2;
     const r0=r*0.995, r1=r*1.01;
-    X.beginPath();
     X.moveTo(cx+Math.cos(a)*r0, cy+Math.sin(a)*r0);
     X.lineTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
-    X.stroke();
   }
+  X.stroke();
   X.restore();
 }
 
@@ -811,26 +778,34 @@ function drawBg(){
   lg.addColorStop(0.45,'rgba(255,120,0,0.03)');
   lg.addColorStop(1,'rgba(0,0,0,0)');
   X.fillStyle=lg; X.beginPath(); X.arc(CX,CY,R*1.18,0,Math.PI*2); X.fill();
-  // light rays from center (very subtle)
+  // light rays from center (batched into 1 stroke)
   X.save(); X.globalAlpha=0.035; X.strokeStyle='#FFD54F'; X.lineWidth=0.6;
+  X.beginPath();
   for(let i=0;i<24;i++){
     const a=(i/24)*Math.PI*2 + frame*0.00007;
-    X.beginPath();
     X.moveTo(CX+Math.cos(a)*R*0.08, CY+Math.sin(a)*R*0.08);
     X.lineTo(CX+Math.cos(a)*W*0.58, CY+Math.sin(a)*W*0.58);
-    X.stroke();
   }
+  X.stroke();
   X.restore();
-  // noise grain (tiny dots)
+  // noise grain (batched into 2 fill calls instead of 180)
   X.save(); X.globalAlpha=0.035;
-  for(let i=0;i<180;i++){
-    const x=(Math.sin(i*12.9898)*43758.5453 %1)*W;
-    const y=(Math.sin(i*78.233)*43758.5 %1)*W;
-    // cheap pseudo random
+  X.fillStyle='#FFD54F'; X.beginPath();
+  for(let i=0;i<180;i+=3){
     const rx = (i*73 % W), ry=(i*97 % W);
-    X.fillStyle = i%3===0? '#FFD54F':'#FFFFFF';
-    X.fillRect(rx, ry, 0.7, 0.7);
+    X.rect(rx, ry, 0.7, 0.7);
   }
+  X.fill();
+  X.fillStyle='#FFFFFF'; X.beginPath();
+  for(let i=1;i<180;i+=3){
+    const rx = (i*73 % W), ry=(i*97 % W);
+    X.rect(rx, ry, 0.7, 0.7);
+  }
+  for(let i=2;i<180;i+=3){
+    const rx = (i*73 % W), ry=(i*97 % W);
+    X.rect(rx, ry, 0.7, 0.7);
+  }
+  X.fill();
   X.restore();
 }
 
@@ -1025,17 +1000,8 @@ function restart(){
   document.getElementById('pauseBtn').textContent='Pause';
 }
 function savePNG(){
-  // render at 2x for high-res export (offscreen)
-  const s = 2400;
-  const tmp=document.createElement('canvas'); tmp.width=s; tmp.height=s;
-  const tx=tmp.getContext('2d');
-  // temporarily swap globals
-  const old={W,CX,CY,R,C,X, DPR};
-  // we need to re-render one frame at high res without animation loops
-  // Simpler: just save current canvas at high quality
   const a=document.createElement('a');
   a.download='CODE-A-POOKALAM-2026-TinkerHub-RIT.png';
-  // upscale current canvas via toDataURL is already DPR crisp
   a.href=C.toDataURL('image/png');
   a.click();
 }
