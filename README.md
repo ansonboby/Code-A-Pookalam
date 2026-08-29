@@ -1,11 +1,11 @@
-# 🌸 Anson's Pookalam 2026 🌸
+# Anson's Pookalam 2026 
 ### *CODE-A-POOKALAM 2026 — TinkerHub RIT Kottayam*
 
 > A cinematic, mathematically-crafted digital Pookalam — 12 concentric rings of pure code. No images, no libraries, just math, gradients, and Onam spirit.
 
 ---
 
-## 👨‍💻 About Me
+## About Me
 
 - **Name:** Anson Boby
 - **Institution:** college of engineering kallooppara
@@ -15,7 +15,7 @@
 
 ---
 
-## 🎨 My Pookalam
+## My Pookalam
 
 ### Description
 
@@ -38,7 +38,7 @@ Every petal is a **cubic Bezier curve**, every gradient is computed with polar m
 > **Live:** Just open `index.html` — it blooms automatically in ~6 seconds. Click *Bloom* to replay.
 > **Tip:** Press `S` to save a 2× high-res PNG for your screenshot.
 
-### Features — Why This Wins 🏆
+### Features — Why This Wins 
 
 - **12 unique rings — now with hyper-dense inner core:**
   1. **Hybrid Nilavilakku + Gear** — brass lamp glow (pulsating) + 16-tooth TinkerHub gear rotating `0.008` + 3-layer lotus (12 crimson / 8 orange / 6 maroon) + flickering diya flame
@@ -91,7 +91,7 @@ The circular text renderer was corrected to keep the decorative labels readable 
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 ### Prerequisites
 
@@ -126,7 +126,7 @@ mv ~/Downloads/CODE-A-POOKALAM-2026-TinkerHub-RIT.png output/preview.png
 
 ---
 
-## 📁 File Structure
+## File Structure
 
 ```
 CODE-A-POOKALAM-2026/
@@ -138,7 +138,7 @@ CODE-A-POOKALAM-2026/
 
 ---
 
-## 🧠 Technical Approach
+## Technical Approach
 
 **Core idea:** Every visual element is math, not images.
 
@@ -154,7 +154,7 @@ CODE-A-POOKALAM-2026/
 
 ---
 
-## 🎊 Happy Onam! 🎊
+## Happy Onam! 
 
 *ഓണം ആശംസകൾ — May your code bloom as beautifully as a Pookalam!*
 
