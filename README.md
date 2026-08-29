@@ -68,6 +68,16 @@ Every petal is a **cubic Bezier curve**, every gradient is computed with polar m
 
 - **Zero dependencies** — one file, no build step, no `npm install`, runs offline, works on phone + laptop
 
+### Text Rendering Fix
+
+The circular text renderer was corrected to keep the decorative labels readable and evenly separated around the ring.
+
+- The **top and bottom text arcs are now split into separate hemispheres**, preventing the two strings from overlapping at the left and right sides.
+- The previous **character-by-character flip artifact** was removed, so digits such as the `6` in `2026` no longer appear reversed like `9`.
+- The text now keeps a **consistent orientation within each arc**, so `TINKERHUB`, `RIT KOTTAYAM`, `CODE-A-POOKALAM 2026`, and `ONAM 2026` render cleanly around the ring.
+
+---
+
 ### Keyboard Controls
 
 | Key | Action |
@@ -138,6 +148,7 @@ CODE-A-POOKALAM-2026/
 - **Depth:** `shadowBlur` + inner highlights (semi-transparent white bezier) + gold stroke per petal.
 - **Pulli Kolam:** 20 anchor dots placed on a circle, connected with alternating `quadraticCurveTo` (inward vs outward) — the classic Kolam weave.
 - **Paisley:** Mango leaf shape with two Beziers + inner swirl path + gold tip dot.
+- **Text ring:** The labels are distributed across non-overlapping top/bottom hemispheres, with consistent arc orientation so words and digits remain readable around the circle.
 - **Interaction:** Mouse angle vs petal angle → `hoverBoost` scales length/width; click spawns `ripples` (expanding stroked circles) + `particles` (glowing dots with velocity + decay).
 - **Performance:** Single canvas, `requestAnimationFrame`, DPR-aware sizing, no allocations in hot loop except particles.
 
